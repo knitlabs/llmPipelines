@@ -3,13 +3,64 @@ from bs4 import BeautifulSoup
 from bs4.element import Comment,NavigableString
 from urllib.request import Request, urlopen
 from pytube import YouTube
+from pypdf import PdfReader
 import uuid
 import os
 import openai
+import ollama
 
+import warnings
+from dotenv import dotenv_values
 
-audio_client = openai.OpenAI(api_key=open_ai_key)
-_INPUTS = Literal["text","url","youtube"]
+api_keys = dotenv_values(".env")
+openai.api_key = api_keys["OPENAI_API_KEY"]
+
+audio_client = openai.OpenAI(api_key=openai.api_key)
+_INPUTS = Literal["text","url","youtube","pdf"]
+
+import ollama
+import os
+from tqdm import tqdm
+
+from  pypdf import PdfReader
+
+image_prompt = '''
+    Provide a descriptive summary of the diagrams provided. The diagram are extracted from the document {name}. Image:
+'''
+
+def fetch_pdf(path:str,support_image:bool=True,base_path:str="Data/") -> str:
+    '''Function that takes in a PDF file as returns content present in it.'''
+    reader = PdfReader(path)
+    content = ""
+    number_of_pages = len(reader.pages)
+    temp_path = base_path + "temp.png"
+    for pg in range(number_of_pages):
+        content = content + reader.pages[pg].extract_text()
+        content = content + "\n\n"
+        image_files = reader.pages[pg].images
+        pdf_name = path.split("/")[-1]
+        if len(image_files) > 0 and support_image:
+            if pg == 0:
+                continue
+            else:
+                try:
+                    for image_file_object in image_files:
+                        with open(temp_path, "wb") as fp:
+                            fp.write(image_file_object.data)
+                        response = ollama.chat(
+                        model="llava",
+                        messages=[
+                        {
+                        'role': 'user',
+                        'content': image_prompt.replace("{name}",pdf_name),
+                        'images': [temp_path]
+                        }
+                        ]
+                    )
+                        content = content +"\n" + response["message"]["content"]
+                except:
+                    continue
+    return content
 
 def tag_visible(element):
     '''
@@ -92,7 +143,7 @@ def youtube_to_transcript(url:str,del_audio:bool = True,base_path:str="Data/") -
   '''
 
   audio_path = download_audio(url,base_path)
-  audio = open(audio_path,'rb')
+  audio_file = open(audio_path,'rb')
   transcript = audio_client.audio.transcriptions.create(
   model="whisper-1",
   file=audio_file
@@ -104,7 +155,7 @@ def youtube_to_transcript(url:str,del_audio:bool = True,base_path:str="Data/") -
 
 
 
-def fetch_input(content:str,type: _INPUTS= "text") -> str:
+def fetch_input(content:str,type: _INPUTS= "text",input_images_pdf:bool=False) -> str:
     '''
     Returns text from a given input. The input could be either text or url.
     If URL the text contents from the website is fetched. Text is passed as is.
@@ -121,9 +172,21 @@ def fetch_input(content:str,type: _INPUTS= "text") -> str:
 
 
     '''
-    if type == "text":
-        return content
-    if type == "url":
-        return extract_text_from_website(content)
-    if type == "youtube":
-        return youtube_to_transcript(content)
+    if type.lower() not in _INPUTS.__args__:
+        raise ValueError("Unsupported input")
+    else:
+        try:
+            if type == "text":
+                return content.split("\n\n")
+            if type == "url":
+                return extract_text_from_website(content).split("\n\n")
+            if type == "youtube":
+                return youtube_to_transcript(content).split("\n\n")
+            if type == "pdf":
+                return fetch_pdf(content,support_image=input_images_pdf).split("\n\n")
+        except:
+            warnings.warn("Something went wrong, ignoring current file")
+
+
+    
+
