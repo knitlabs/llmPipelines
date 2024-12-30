@@ -1,86 +1,119 @@
 **README for Data Ingestion Module**
 
-This module provides functions for fetching and processing data from various sources, including text, URLs, YouTube videos, and PDF files. It utilizes various libraries such as BeautifulSoup, YouTube, and OpenAI to extract and transform data.
+This module provides functions for fetching and processing data from various sources, including text, URLs, audio files, PDF documents, images, and graphs. It utilizes multiple libraries such as BeautifulSoup, OpenAI, and PyPDF to extract, transform, and analyze data.
 
-### Functions
+## Functions
 
-1. **`fetch_pdf`**:
-   - **Description**: Fetches content from a PDF file.
-   - **Parameters**:
-     - `path`: Path to the PDF file.
-     - `support_image`: Whether to extract images from the PDF (default: `True`).
-     - `base_path`: Base directory for temporary files (default: `"Data/"`).
-   - **Return**: The content of the PDF file.
+### Data Extraction
 
-2. **`tag_visible`**:
-   - **Description**: Identifies visible text elements from a given webpage.
-   - **Parameters**: None
-   - **Return**: A boolean indicating whether the element is visible.
+**`fetch_pdf`**
+- **Description**: Extracts content from a PDF file, including text and optionally images.
+- **Parameters**:
+  - `path`: Path to the PDF file.
+  - `support_image`: Whether to process images in the PDF (default: `True`).
+  - `graph_mode`: Whether to convert image contents to JSON (default: `True`).
+- **Return**: String containing the PDF contents.
 
-3. **`text_from_html`**:
-   - **Description**: Extracts text from a webpage.
-   - **Parameters**: The HTML content of the webpage.
-   - **Return**: The extracted text.
+**`fetch_url`**
+- **Description**: Extracts text content from a given website.
+- **Parameters**: URL of the website.
+- **Return**: Extracted text from the webpage.
 
-4. **`extract_text_from_website`**:
-   - **Description**: Extracts text content from a given website.
-   - **Parameters**: The URL of the website.
-   - **Return**: The extracted text.
+**`fetch_audio`**
+- **Description**: Converts an audio file into a transcript.
+- **Parameters**: Path to the audio file.
+- **Return**: Transcribed text.
 
-5. **`download_audio`**:
-   - **Description**: Downloads an audio file from a YouTube video.
-   - **Parameters**:
-     - `url`: The URL of the YouTube video.
-     - `base_path`: Base directory for the downloaded file (default: `"Data/"`).
-   - **Return**: The path of the downloaded file.
+**`fetch_word`**
+- **Description**: Extracts content from a Word document, including text and optionally images.
+- **Parameters**:
+  - `path`: Path to the Word document.
+  - `support_image`: Whether to process images (default: `True`).
+  - `graph_mode`: Whether to convert image contents to JSON (default: `True`).
+- **Return**: String containing the document contents.
 
-6. **`youtube_to_transcript`**:
-   - **Description**: Converts a YouTube video into a transcript.
-   - **Parameters**:
-     - `url`: The URL of the YouTube video.
-     - `del_audio`: Whether to delete the audio file after transcription (default: `True`).
-     - `base_path`: Base directory for the audio file (default: `"Data/"`).
-   - **Return**: The transcript of the video.
+### Image and Graph Processing
 
-7. **`fetch_input`**:
-   - **Description**: Returns text from a given input. The input could be either text or a URL.
-   - **Parameters**:
-     - `content`: The input content.
-     - `type`: The type of input (default: `"text"`).
-     - `input_images_pdf`: Whether to include images from PDF files (default: `False`).
-   - **Return**: The extracted text.
+**`fetch_graph_image`**
+- **Description**: Converts images of graphs to JSON format.
+- **Parameters**: Path to the graph image.
+- **Return**: JSON representation of the graph.
 
-### Usage
+**`fetch_image`**
+- **Description**: Generates a detailed description of an image.
+- **Parameters**: Path to the image file.
+- **Return**: String containing the image description.
 
-To use this module, you need to install the required libraries and set up your environment variables. The module supports various types of inputs, including text, URLs, YouTube videos, and PDF files. Each function has its own set of parameters and return values, which are documented above.
+### Utility Functions
+
+**`tag_visible`**
+- **Description**: Identifies visible text elements from a webpage.
+- **Parameters**: HTML element.
+- **Return**: Boolean indicating if the element is visible.
+
+**`text_from_html`**
+- **Description**: Extracts visible text from HTML content.
+- **Parameters**: HTML body.
+- **Return**: Extracted text.
+
+**`encode_image`**
+- **Description**: Encodes an image file to base64.
+- **Parameters**: Path to the image file.
+- **Return**: Base64 encoded string of the image.
+
+### Main Function
+
+**`fetch_input`**
+- **Description**: Processes various types of inputs and returns extracted content.
+- **Parameters**:
+  - `content`: Input content or path.
+  - `type`: Type of input (e.g., "text", "url", "audio", "pdf", "graph", "image").
+  - `input_images_pdf`: Whether to process images in PDFs (default: `True`).
+  - `graph_mode`: Whether to use graph mode for images (default: `True`).
+- **Return**: Extracted and processed content based on input type.
+
+## Usage
+
+To use this module, install the required libraries and set up your environment variables. The module supports various input types, including text, URLs, audio files, PDFs, images, and graphs.
 
 ### Environment Variables
 
-The module uses environment variables to store API keys and other configuration settings. You need to set these variables in a `.env` file in the root directory of your project.
+Set up your OpenAI API key in the environment variables:
+
+```
+openai_key=your_openai_api_key_here
+```
 
 ### Example Usage
 
-Here are some examples of how to use the functions in this module:
-
 ```python
+from data_ingestion import fetch_input
+
 # Fetch text from a PDF file
-pdf_content = fetch_pdf("path/to/pdf.pdf")
+pdf_content = fetch_input("path/to/document.pdf", "pdf")
 
 # Fetch text from a webpage
-web_content = extract_text_from_website("https://example.com")
+web_content = fetch_input("https://example.com", "url")
 
-# Fetch transcript from a YouTube video
-transcript = youtube_to_transcript("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+# Fetch transcript from an audio file
+transcript = fetch_input("/path/to/audio.mp3", "audio")
+
+# Analyze a graph image
+graph_data = fetch_input("path/to/graph.png", "graph")
+
+# Get description of an image
+image_description = fetch_input("path/to/image.jpg", "image")
 ```
 
-### Limitations
+## Limitations
 
-- The module currently supports only English videos for transcription.
-- The audio size is limited to 25MB as of now.
-- The module does not support other languages for transcription.
+- Audio file size is limited to 25MB for transcription.
+- Image and graph analysis rely on OpenAI's capabilities and may have limitations based on the model used.
 
-### Future Development
+## Future Development
 
-- Support for other languages for transcription.
 - Support for larger audio files.
-- Additional features for handling different types of inputs.
+- Enhanced multi-language support for audio transcription.
+- Improved graph and image analysis capabilities.
+- Integration with additional data sources and formats.
+- Integration with Structured data via an automated EDA pipeline and metadata.
